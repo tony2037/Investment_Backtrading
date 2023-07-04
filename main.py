@@ -52,7 +52,7 @@ class sizer(bt.Sizer):
             return self.broker.getposition(data)
 
 # get date from yahoo
-data = bt.feeds.PandasData(dataname=yf.download('TSLA', '2018-01-01', '2019-01-01'))
+data = bt.feeds.PandasData(dataname=yf.download('0050.TW', '2018-01-01', '2023-01-01'))
 """
 data = btfeeds.YahooFinanceData(dataname='SPY',
                                 fromdate=datetime.datetime(2019, 1, 1),
