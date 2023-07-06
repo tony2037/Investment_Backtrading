@@ -51,17 +51,59 @@ class sizer(bt.Sizer):
         else:
             return self.broker.getposition(data)
 
+class StableRatio(bt.Strategy):
+    def __init__(self):
+        self.etf = self.datas[0]
+        self.target_ratio = 7 / 3
+
+    def next(self):
+        total_value = self.broker.getvalue() # the total portfolio value
+        cash_value = self.broker.getcash()  # cash
+        etf_position = self.broker.getposition(self.etf).size
+        etf_value = self.etf.close[0] * etf_position # calcualte etf value
+
+        # calculate the ratio
+        current_ratio = etf_value / cash_value if cash_value > 0 else 0
+
+        if current_ratio < self.target_ratio:
+            """
+            buy in
+            x + a / y - a = c
+            cy - ca = x + a
+            a = (cy - x) / (1 + c)
+            """
+            amount_to_buy = (self.target_ratio * cash_value - etf_value) / (1 + self.target_ratio)
+            # FIXME: buy in with open price
+            self.buy(self.etf, size=amount_to_buy / self.etf.close[0])
+            print('Buy')
+
+        elif current_ratio > self.target_ratio and etf_position > 0:
+            """
+            sell
+            x - a / y + a = c
+            cy + ca = x - a
+            a = (x - cy) / (1 + c)
+            """
+            amount_to_sell = (etf_value - self.target_ratio * cash_value) / (1 + self.target_ratio)
+            self.sell(self.etf, size=amount_to_sell / self.etf.open[0])
+            print('SELL')
+
+        print('Total: {}; Cash: {}'.format(self.broker.getvalue(), self.broker.getcash()))
+
+
 # get date from yahoo
 data = bt.feeds.PandasData(dataname=yf.download('0050.TW', '2018-01-01', '2023-01-01'))
 """
-data = btfeeds.YahooFinanceData(dataname='SPY',
+data = btfeeds.YahooFinanceData(dataname='etf',
                                 fromdate=datetime.datetime(2019, 1, 1),
                                 todate=datetime.datetime(2019, 12, 31))
 """
 
+strategies = [SmaCross, StableRatio]
 cerebro = bt.Cerebro()
+cerebro.broker.setcash(1000000)
 cerebro.adddata(data, name='0000')
-cerebro.addstrategy(SmaCross)
+cerebro.addstrategy(strategies[1])
 cerebro.run()
 
 b = Bokeh(style='bar', plot_mode='single', scheme=Tradimo())
