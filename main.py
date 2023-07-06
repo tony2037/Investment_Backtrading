@@ -6,6 +6,8 @@ import math
 from backtrader_plotting import Bokeh
 from backtrader_plotting.schemes import Tradimo
 
+INIT_CASH = 1000000
+
 # sma cross strategy
 class SmaCross(bt.Strategy):
     # trade log
@@ -61,6 +63,8 @@ class StableRatio(bt.Strategy):
         cash_value = self.broker.getcash()  # cash
         etf_position = self.broker.getposition(self.etf).size
         etf_value = self.etf.close[0] * etf_position # calcualte etf value
+        ROI = (total_value - INIT_CASH) * 100 / INIT_CASH # unit: %
+        date = self.etf.datetime.date(0)
 
         # calculate the ratio
         current_ratio = etf_value / cash_value if cash_value > 0 else 0
@@ -88,7 +92,7 @@ class StableRatio(bt.Strategy):
             self.sell(self.etf, size=amount_to_sell / self.etf.open[0])
             print('SELL')
 
-        print('Total: {}; Cash: {}'.format(self.broker.getvalue(), self.broker.getcash()))
+        print('[date:{}] Total: {}; Cash: {}; ROI: {:.2f}%'.format(date, total_value, cash_value, ROI))
 
 
 # get date from yahoo
@@ -101,7 +105,7 @@ data = btfeeds.YahooFinanceData(dataname='etf',
 
 strategies = [SmaCross, StableRatio]
 cerebro = bt.Cerebro()
-cerebro.broker.setcash(1000000)
+cerebro.broker.setcash(INIT_CASH)
 cerebro.adddata(data, name='0000')
 cerebro.addstrategy(strategies[1])
 cerebro.run()
